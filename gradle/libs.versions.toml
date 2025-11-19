@@ -15,12 +15,22 @@ hiltNavCompose = "1.2.0"
 
 navVersion = "2.7.7"
 
+room = "2.8.2"
+
+gson = "2.10.1"
+
 [libraries]
 hilt = { module = "com.google.dagger:hilt-android", version.ref = "hilt" }
 hilt-compiler = { module = "com.google.dagger:hilt-compiler", version.ref = "hilt" }
 hilt-compose = { module = "androidx.hilt:hilt-navigation-compose", version.ref = "hiltNavCompose" }
 
 nav-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navVersion" }
+
+room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
+room-compiler-ksp = { module = "androidx.room:room-compiler", version.ref = "room" }
+room-ktx = { module = "androidx.room:room-ktx", version.ref = "room" }
+
+gson = {module = "com.google.code.gson:gson", version.ref = "gson"}
 
 
 
@@ -40,10 +50,10 @@ androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit
 androidx-material3 = { group = "androidx.compose.material3", name = "material3" }
 
 [plugins]
+hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt"}
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 
-ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
-hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt"}
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose" }

@@ -8,7 +8,7 @@ plugins {
 
 android {
     namespace = "com.example.alarmer"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.example.alarmer"
@@ -36,6 +36,11 @@ android {
 
 
     }
+    kotlin {
+        sourceSets.configureEach {
+            kotlin.srcDir("build/generated/ksp/${name}/kotlin")
+        }
+    }
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.10"
     }
@@ -48,12 +53,21 @@ android {
 }
 
 dependencies {
+    //Custom
     implementation(libs.hilt)
     ksp(libs.hilt.compiler)
     implementation(libs.hilt.compose)
 
     implementation(libs.nav.compose)
 
+    implementation(libs.room.runtime)
+    implementation(libs.room.ktx)
+    ksp(libs.room.compiler.ksp)
+
+    implementation (libs.gson)
+
+
+    //Standard
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)

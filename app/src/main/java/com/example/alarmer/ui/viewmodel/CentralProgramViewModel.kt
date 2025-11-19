@@ -1,7 +1,9 @@
+package com.example.alarmer.ui.viewmodel
+
 import androidx.lifecycle.ViewModel
-import androidx.navigation.compose.DialogNavigator
 import com.example.alarmer.core.domain.service.CentralScreenService.NavigationCenter
 import dagger.hilt.android.lifecycle.HiltViewModel
+
 import javax.inject.Inject
 
 @HiltViewModel

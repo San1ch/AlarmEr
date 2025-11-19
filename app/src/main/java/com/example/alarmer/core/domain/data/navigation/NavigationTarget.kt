@@ -1,5 +1,6 @@
 package com.example.alarmer.core.domain.data.navigation
 
+import com.example.alarmer.ui.screen.AlarmCreatorScreenRoute
 import com.example.alarmer.ui.screen.MainScreenRoute
 
 sealed class NavigationTarget(open val route: String) {
@@ -7,5 +8,9 @@ sealed class NavigationTarget(open val route: String) {
 
     sealed class MainScreens(route: String) : NavigationTarget(route) {
         object Main : MainScreens(route = MainScreenRoute)
+    }
+
+    sealed class AlarmCreatorScreens(route: String) : NavigationTarget(route) {
+        object Main : MainScreens(route = AlarmCreatorScreenRoute)
     }
 }
