@@ -14,6 +14,9 @@ data class AlarmEntity(
     @ColumnInfo(name = "id")
     val id: Int = 0,
 
+    @ColumnInfo
+    val orderIndex: Int,
+
     @ColumnInfo(name = "hour")
     val hour: Int,
 
@@ -24,14 +27,14 @@ data class AlarmEntity(
     val isEnabled: Boolean = true,
 
     @ColumnInfo(name = "label")
-    val label: String? = null,
+    val label: String = "",
 
     /**
      * Null → one-time alarm
      * Non-null → weekly repeating days
      */
     @ColumnInfo(name = "repeat_days")
-    val repeatDays: List<DayOfWeek>? = null,
+    val repeatDays: List<DayOfWeek> = emptyList<DayOfWeek>(),
 
     /**
      * Null → no task
@@ -43,8 +46,11 @@ data class AlarmEntity(
     /**
      * When >0 → alarm cannot be dismissed before triggerTime + this value
      */
-    @ColumnInfo(name = "disable_before_ms")
-    val disableBeforeMillis: Long? = null,
+    @ColumnInfo(name = "disableHour")
+    val disableHour: Int,
+
+    @ColumnInfo(name = "disableMinute")
+    val disableMinute: Int,
 
     @ColumnInfo(name = "audio")
     val audio: AlarmAudio,

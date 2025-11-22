@@ -1,6 +1,6 @@
 package com.example.alarmer
 
-import com.example.alarmer.ui.viewmodel.CenterProgramViewModel
+import com.example.alarmer.core.ui.ViewModel.CenterProgramViewModel
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -14,7 +14,7 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.alarmer.core.domain.data.navigation.NavigationTarget
+import com.example.alarmer.core.ui.navigation.NavigationTarget
 import com.example.alarmer.ui.screen.AlarmCreatorScreen
 import com.example.alarmer.ui.screen.AlarmCreatorScreenRoute
 import com.example.alarmer.ui.screen.MainScreen

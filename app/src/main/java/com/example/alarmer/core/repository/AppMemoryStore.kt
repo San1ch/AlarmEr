@@ -1,4 +1,4 @@
-package com.example.alarmer.core.domain.data.repository
+package com.example.alarmer.core.repository
 
 import kotlinx.coroutines.flow.MutableStateFlow
 import javax.inject.Inject

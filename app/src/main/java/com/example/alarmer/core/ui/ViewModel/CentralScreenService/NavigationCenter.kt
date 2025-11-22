@@ -1,6 +1,6 @@
-package com.example.alarmer.core.domain.service.CentralScreenService
+package com.example.alarmer.core.ui.ViewModel.CentralScreenService
 
-import com.example.alarmer.core.domain.data.navigation.NavigationTarget
+import com.example.alarmer.core.ui.navigation.NavigationTarget
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import javax.inject.Inject

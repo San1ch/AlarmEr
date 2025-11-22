@@ -1,4 +1,4 @@
-package com.example.alarmer.core.domain.data.room
+package com.example.alarmer.core.repository.room
 
 import androidx.room.Dao
 import androidx.room.Delete
@@ -7,6 +7,7 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
 import com.example.alarmer.core.domain.data.alarm.AlarmEntity
+import kotlinx.coroutines.flow.Flow
 
 
 @Dao
@@ -54,4 +55,13 @@ interface AlarmDao {
      */
     @Query("DELETE FROM alarms")
     suspend fun deleteAll()
+
+    /**
+     * Observe all alarms.
+     */
+    @Query("SELECT * FROM alarms ORDER BY hour ASC, minute ASC")
+    fun observeAll(): Flow<List<AlarmEntity>>
+
+    @Query("SELECT COALESCE(MAX(orderIndex), -1) FROM alarms")
+    suspend fun getMaxOrderIndex(): Int
 }

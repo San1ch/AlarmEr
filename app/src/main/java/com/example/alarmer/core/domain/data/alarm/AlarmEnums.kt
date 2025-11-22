@@ -7,3 +7,7 @@ enum class AlarmTaskType {
 enum class DayOfWeek {
     MON, TUE, WED, THU, FRI, SAT, SUN
 }
+
+enum class TimeMode {
+    STANDARD, LINKED
+}

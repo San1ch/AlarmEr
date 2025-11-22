@@ -1,7 +1,7 @@
-package com.example.alarmer.core.domain.ui.usecase.navigation
+package com.example.alarmer.core.ui.usecase.navigation
 
-import com.example.alarmer.core.domain.data.navigation.NavigationTarget
-import com.example.alarmer.core.domain.service.CentralScreenService.NavigationCenter
+import com.example.alarmer.core.ui.navigation.NavigationTarget
+import com.example.alarmer.core.ui.ViewModel.CentralScreenService.NavigationCenter
 import javax.inject.Inject
 
 class NavigateToScreenUseCase @Inject constructor(

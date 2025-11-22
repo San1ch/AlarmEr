@@ -1,4 +1,4 @@
-package com.example.alarmer.core.domain.data.navigation
+package com.example.alarmer.core.ui.navigation
 
 import com.example.alarmer.ui.screen.AlarmCreatorScreenRoute
 import com.example.alarmer.ui.screen.MainScreenRoute
