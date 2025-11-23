@@ -41,7 +41,7 @@ interface AlarmDao {
     /**
      * Get all alarms sorted by time.
      */
-    @Query("SELECT * FROM alarms ORDER BY hour ASC, minute ASC")
+    @Query("SELECT * FROM alarms ORDER BY offset_minutes")
     suspend fun getAll(): List<AlarmEntity>
 
     /**
@@ -59,9 +59,13 @@ interface AlarmDao {
     /**
      * Observe all alarms.
      */
-    @Query("SELECT * FROM alarms ORDER BY hour ASC, minute ASC")
+    @Query("SELECT * FROM alarms ORDER BY order_index ASC")
     fun observeAll(): Flow<List<AlarmEntity>>
 
-    @Query("SELECT COALESCE(MAX(orderIndex), -1) FROM alarms")
+    @Query("SELECT COALESCE(MAX(order_index), -1) FROM alarms")
     suspend fun getMaxOrderIndex(): Int
+
+    @Query("SELECT order_index FROM alarms WHERE id = :id LIMIT 1")
+    suspend fun getOrderIndexByParentId(id: Int): Int
+
 }
