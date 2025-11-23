@@ -3,25 +3,45 @@ package com.example.alarmer.core.domain.data.alarm
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import androidx.room.ColumnInfo
+import androidx.room.ForeignKey
 
 /**
  * Stored alarm configuration.
  */
-@Entity(tableName = "alarms")
+@Entity(
+    tableName = "alarms",
+    foreignKeys = [
+        ForeignKey(
+            entity = AlarmEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["linked_to_id"],
+            onDelete = ForeignKey.CASCADE
+        )
+    ]
+)
 data class AlarmEntity(
 
     @PrimaryKey(autoGenerate = true)
     @ColumnInfo(name = "id")
     val id: Int = 0,
 
-    @ColumnInfo
+    @ColumnInfo(name = "order_index")
     val orderIndex: Int,
 
-    @ColumnInfo(name = "hour")
-    val hour: Int,
+    @ColumnInfo(name = "time_minutes")
+    val timeMinutes: Int,
 
-    @ColumnInfo(name = "minute")
-    val minute: Int,
+    @ColumnInfo(name = "time_mode")
+    val timeMode: TimeMode = TimeMode.STANDARD,
+
+    @ColumnInfo(name = "linked_to_id", index = true)
+    val linkedToId: Int? = null,
+
+    @ColumnInfo(name = "is_alarm_ring_after")
+    val isAlarmRingAfter: Boolean = false,
+
+    @ColumnInfo(name = "offset_minutes")
+    val offsetMinutes: Int = 0,
 
     @ColumnInfo(name = "is_enabled")
     val isEnabled: Boolean = true,
@@ -29,23 +49,12 @@ data class AlarmEntity(
     @ColumnInfo(name = "label")
     val label: String = "",
 
-    /**
-     * Null → one-time alarm
-     * Non-null → weekly repeating days
-     */
     @ColumnInfo(name = "repeat_days")
-    val repeatDays: List<DayOfWeek> = emptyList<DayOfWeek>(),
+    val repeatDays: List<DayOfWeek> = emptyList(),
 
-    /**
-     * Null → no task
-     * Non-null → task settings (photo, math…)
-     */
     @ColumnInfo(name = "task")
     val task: AlarmTask? = null,
 
-    /**
-     * When >0 → alarm cannot be dismissed before triggerTime + this value
-     */
     @ColumnInfo(name = "disableHour")
     val disableHour: Int,
 
@@ -57,7 +66,16 @@ data class AlarmEntity(
 
     @ColumnInfo(name = "created_at")
     val createdAt: Long = System.currentTimeMillis()
-)
+){
+    fun getHour(): Int = timeMinutes / 60
+    fun getMinute(): Int = timeMinutes % 60
+
+    fun timeToMinutes(hour: Int, minutes: Int): Int = hour * 60 + minutes
+
+    fun changeEnabled(isEnabled: Boolean): AlarmEntity {
+        return copy(isEnabled = isEnabled)
+    }
+}
 
 
 

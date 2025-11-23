@@ -2,10 +2,11 @@ package com.example.alarmer.core.ui.ViewModel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.alarmer.core.domain.data.alarm.AlarmEntity
 import com.example.alarmer.core.domain.data.alarm.AlarmTaskType
 import com.example.alarmer.core.domain.data.alarm.DayOfWeek
 import com.example.alarmer.core.domain.data.alarm.TimeMode
+import com.example.alarmer.core.repository.room.usecases.GetAllAlarmFlowsUseCase
 import com.example.alarmer.core.ui.usecase.AlarmCreatorScreen.CreateAlarmUseCase
 import com.example.alarmer.core.ui.usecase.navigation.BackToPreviousScreenUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -18,13 +19,14 @@ import javax.inject.Inject
 @HiltViewModel
 class AlarmCreatorScreenViewModel @Inject constructor(
     private val backToPreviousScreenUseCase: BackToPreviousScreenUseCase,
-    private val createAlarmUseCase: CreateAlarmUseCase
+    private val createAlarmUseCase: CreateAlarmUseCase,
+    private val getAllAlarmFlowsUseCase: GetAllAlarmFlowsUseCase
 ) : ViewModel() {
 
     private val _stateUiContent = MutableStateFlow(AlarmCreatorScreenUiContentState())
     val stateUiContent: StateFlow<AlarmCreatorScreenUiContentState> = _stateUiContent.asStateFlow()
 
-
+    val alarms = getAllAlarmFlowsUseCase()
 
     // === TIME VALIDATION ===
     fun onHourChanged(hour: String) {
@@ -68,14 +70,10 @@ class AlarmCreatorScreenViewModel @Inject constructor(
         }
     }
 
-    // === OTHER INPUTS ===
     fun onLabelChanged(label: String) {
         _stateUiContent.value = _stateUiContent.value.copy(label = label)
     }
 
-    fun onRepeatDaysChanged(repeatDays: List<DayOfWeek>) {
-        _stateUiContent.value = _stateUiContent.value.copy(repeatDays = repeatDays)
-    }
 
     fun onTimeModeToggle() {
         val newMode = if (_stateUiContent.value.timeMode == TimeMode.STANDARD) {
@@ -90,6 +88,9 @@ class AlarmCreatorScreenViewModel @Inject constructor(
         _stateUiContent.value = _stateUiContent.value.copy(enabledDisableMode = enabledDisableMode)
     }
 
+    fun onAlarmClick(alarm: AlarmEntity){
+        _stateUiContent.value = _stateUiContent.value.copy(alarm = alarm)
+    }
     fun onSoundUriChanged(soundUri: String) {
         _stateUiContent.value = _stateUiContent.value.copy(soundUri = soundUri)
     }
@@ -108,22 +109,6 @@ class AlarmCreatorScreenViewModel @Inject constructor(
         _stateUiContent.value = _stateUiContent.value.copy(repeatDays = newList)
     }
 
-    fun extractFileName(uri: String): String {
-        if (uri.isBlank()) return "No audio selected"
-        return uri.substringAfterLast('/', "Unknown")
-    }
-
-    fun onSaveAlarm() {
-        viewModelScope.launch{
-            val result = createAlarmUseCase(stateUiContent.value)
-            if(result){
-                backToPreviousScreenUseCase()
-            }
-            else{
-                println("Failed to create alarm")
-            }
-        }
-    }
 
     // === TASK HANDLING ===
     fun onMathTask() {
@@ -147,6 +132,15 @@ class AlarmCreatorScreenViewModel @Inject constructor(
             )
         )
     }
+
+
+    fun onLinkedOffsetModeToggle() {
+        val current = _stateUiContent.value
+        _stateUiContent.value = current.copy(
+            isAlarmRingAfter = !current.isAlarmRingAfter
+        )
+    }
+
 
     fun onPhotoAdded(uri: String) {
         val current = _stateUiContent.value.photoTaskState
@@ -177,6 +171,19 @@ class AlarmCreatorScreenViewModel @Inject constructor(
     fun onCancelAlarmCreatorClick() {
         backToPreviousScreenUseCase()
     }
+
+
+    fun onSaveAlarm() {
+        viewModelScope.launch{
+            val result = createAlarmUseCase(stateUiContent.value)
+            if(result){
+                backToPreviousScreenUseCase()
+            }
+            else{
+                println("Failed to create alarm")
+            }
+        }
+    }
 }
 
 // === STATE CLASSES ===
@@ -184,6 +191,8 @@ data class AlarmCreatorScreenUiContentState(
     val label: String = "",
 
     val timeMode: TimeMode = TimeMode.STANDARD,
+    val isAlarmRingAfter: Boolean = true,
+
     val hour: String = "",
     val minute: String = "",
 
@@ -197,7 +206,11 @@ data class AlarmCreatorScreenUiContentState(
     val soundUri: String = "",
     val volume: Float = 0f,
 
-    val photoTaskState: PhotoTaskState = PhotoTaskState()
+    val alarm: AlarmEntity? = null,
+
+    val photoTaskState: PhotoTaskState = PhotoTaskState(),
+
+
 )
 
 data class PhotoTaskState(

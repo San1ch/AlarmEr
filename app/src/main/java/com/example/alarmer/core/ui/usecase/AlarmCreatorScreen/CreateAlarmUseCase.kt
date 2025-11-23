@@ -4,12 +4,15 @@ import com.example.alarmer.core.domain.data.alarm.AlarmAudio
 import com.example.alarmer.core.domain.data.alarm.AlarmEntity
 import com.example.alarmer.core.domain.data.alarm.AlarmTask
 import com.example.alarmer.core.domain.data.alarm.AlarmTaskType
+import com.example.alarmer.core.domain.data.alarm.TimeMode
 import com.example.alarmer.core.repository.room.AlarmRepository
+import com.example.alarmer.core.repository.room.usecases.GetAlarmByIdUseCase
 import com.example.alarmer.core.ui.ViewModel.AlarmCreatorScreenUiContentState
 import javax.inject.Inject
 
 class CreateAlarmUseCase @Inject constructor(
     private val alarmRepository: AlarmRepository,
+    private val getAlarmByIdUseCase: GetAlarmByIdUseCase
 ) {
 
     suspend operator fun invoke(state: AlarmCreatorScreenUiContentState): Boolean {
@@ -18,8 +21,30 @@ class CreateAlarmUseCase @Inject constructor(
         val maxOrder = alarmRepository.getMaxOrderIndex()
         val newOrderIndex = maxOrder + 1
 
-        val hour = state.hour.toInt()
-        val minute = state.minute.toInt()
+        val (timeMinutes, linkedToId, offsetMinutes) = when (state.timeMode) {
+            TimeMode.STANDARD -> {
+                val hour = state.hour.toInt()
+                val minute = state.minute.toInt()
+                Triple(hour * 60 + minute, null, 0)
+            }
+            TimeMode.LINKED -> {
+                val parent = state.alarm ?: return false
+
+                val parentMinutes = parent.timeMinutes
+
+                val offset = state.hour.toInt() * 60 + state.minute.toInt()
+                val signedOffset = if (state.isAlarmRingAfter) offset else -offset
+
+                val finalMinutes = (parentMinutes + signedOffset).mod(24 * 60)
+
+                Triple(
+                    finalMinutes,
+                    parent.id,
+                    signedOffset,
+                )
+
+            }
+        }
 
         val disableHour = if (state.enabledDisableMode) {
             state.disableHour.toInt()
@@ -58,8 +83,10 @@ class CreateAlarmUseCase @Inject constructor(
         val alarm = AlarmEntity(
             id = 0,
             orderIndex = newOrderIndex,
-            hour = hour,
-            minute = minute,
+            timeMinutes = timeMinutes,
+            timeMode = state.timeMode,
+            linkedToId = linkedToId,
+            offsetMinutes = offsetMinutes,
             isEnabled = false,
             label = state.label.trim(),
             repeatDays = state.repeatDays,
@@ -67,7 +94,8 @@ class CreateAlarmUseCase @Inject constructor(
             disableHour = disableHour,
             disableMinute = disableMinute,
             audio = audio,
-            createdAt = System.currentTimeMillis()
+            createdAt = System.currentTimeMillis(),
+            isAlarmRingAfter = state.isAlarmRingAfter
         )
 
         alarmRepository.insertAlarm(alarm)
@@ -103,7 +131,22 @@ class CreateAlarmUseCase @Inject constructor(
 
         return true
     }
+
 }
+
+fun timeWithOffset(
+    baseHour: Int,
+    baseMinute: Int,
+    offsetMinutes: Int
+): Pair<Int, Int> {
+    val base = baseHour * 60 + baseMinute
+    val result = (base + offsetMinutes).mod(DAY_MINUTES)
+    val hour = result / 60
+    val minute = result % 60
+    return hour to minute
+}
+
+private const val DAY_MINUTES = 24 * 60
 
 enum class CreateAlarmResult {
     Success,

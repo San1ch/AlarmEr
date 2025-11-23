@@ -5,10 +5,17 @@ import android.provider.OpenableColumns
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -27,20 +34,24 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBox
 import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -56,8 +67,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.alarmer.core.domain.data.alarm.AlarmEntity
 import com.example.alarmer.core.domain.data.alarm.DayOfWeek
 import com.example.alarmer.core.domain.data.alarm.TimeMode
+import com.example.alarmer.core.ui.ViewModel.AlarmCreatorScreenUiContentState
 import com.example.alarmer.core.ui.ViewModel.AlarmCreatorScreenViewModel
 import com.example.alarmer.ui.screen.dialog.AlarmCreatorScreen.PhotoTaskDialog
 
@@ -83,7 +96,7 @@ fun AlarmCreatorScreen(
         }
     }
 
-    AlarmCreatorScreenContent(viewModel, audioPickerLauncher)
+    AlarmCreatorScreenContent(viewModel, audioPickerLauncher, state.value)
 
     if (state.value.photoTaskState.isDialogVisible) {
         PhotoTaskDialog(
@@ -104,279 +117,384 @@ fun AlarmCreatorScreen(
 fun AlarmCreatorScreenContent(
     viewModel: AlarmCreatorScreenViewModel,
     audioPickerLauncher: ActivityResultLauncher<String>,
+    state: AlarmCreatorScreenUiContentState,
 ) {
-    val state by viewModel.stateUiContent.collectAsState()
     val context = LocalContext.current
 
     val audioTitle = remember(state.soundUri) {
         deriveAudioTitle(context, state.soundUri)
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .statusBarsPadding()
-            .navigationBarsPadding()
-            .padding(horizontal = 20.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.Top,
-        horizontalAlignment = Alignment.Start
+    CompositionLocalProvider(
+        LocalContentColor provides MaterialTheme.colorScheme.onBackground
     ) {
-        // ===== НЕСКРОЛЬОВАНА ВЕРХНЯ ЧАСТИНА =====
-
-        Spacer(Modifier.height(8.dp))
-
-        Box(
-            modifier = Modifier.fillMaxWidth(),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                "Alarm Creator",
-                fontWeight = FontWeight.Bold,
-                style = MaterialTheme.typography.headlineSmall,
-                color = Color.White
-            )
-        }
-
-        Spacer(Modifier.height(20.dp))
-
-        // LABEL
-        Text("Label", fontWeight = FontWeight.Bold, color = Color.White)
-
-        OutlinedTextField(
-            value = state.label,
-            onValueChange = { viewModel.onLabelChanged(it) },
-            singleLine = true,
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp),
-            textStyle = MaterialTheme.typography.bodyMedium.copy(color = Color.White)
-        )
-
-        Spacer(Modifier.height(16.dp))
-
-        // TIME
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+                .statusBarsPadding()
+                .navigationBarsPadding()
+                .padding(horizontal = 20.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.Top,
+            horizontalAlignment = Alignment.Start
         ) {
-            Text("Time mode", fontWeight = FontWeight.Bold, color = Color.White)
-            Spacer(Modifier.width(8.dp))
-            TimeModeToggle(
-                selected = state.timeMode,
-                onToggle = { viewModel.onTimeModeToggle() }
-            )
-        }
 
-        if (state.timeMode == TimeMode.LINKED) {
+            Spacer(Modifier.height(8.dp))
 
-        }
-
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            OutlinedTextField(
-                value = state.hour,
-                onValueChange = {
-                    val filtered = it.filter { ch -> ch.isDigit() }.take(2)
-                    viewModel.onHourChanged(filtered)
-                },
-                label = { Text("HH", color = Color.White) },
-                singleLine = true,
-                modifier = Modifier.width(80.dp),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                textStyle = MaterialTheme.typography.bodyMedium.copy(color = Color.White)
-            )
-
-            Text(":", color = Color.White)
-
-            OutlinedTextField(
-                value = state.minute,
-                onValueChange = {
-                    val filtered = it.filter { ch -> ch.isDigit() }.take(2)
-                    viewModel.onMinuteChanged(filtered)
-                },
-                label = { Text("MM", color = Color.White) },
-                singleLine = true,
-                modifier = Modifier.width(80.dp),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                textStyle = MaterialTheme.typography.bodyMedium.copy(color = Color.White)
-            )
-        }
-
-        Spacer(Modifier.height(20.dp))
-
-
-        Box(
-            modifier = Modifier
-                .weight(1f)
-        ) {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.spacedBy(20.dp)
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center
             ) {
+                Text(
+                    "Alarm Creator",
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.headlineSmall,
+                )
+            }
 
-                // REPEAT DAYS
-                item {
-                    Text("Repeat Days", fontWeight = FontWeight.Bold, color = Color.White)
-                    Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(20.dp))
 
+            // LABEL
+            Text("Label", fontWeight = FontWeight.Bold)
+
+            OutlinedTextField(
+                value = state.label,
+                onValueChange = { viewModel.onLabelChanged(it) },
+                singleLine = true,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
+                textStyle = MaterialTheme.typography.bodyMedium
+            )
+
+            Spacer(Modifier.height(16.dp))
+
+            // TIME MODE
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text("Time mode", fontWeight = FontWeight.Bold)
+                Spacer(Modifier.width(8.dp))
+                TimeModeToggle(
+                    selected = state.timeMode,
+                    onToggle = { viewModel.onTimeModeToggle() }
+                )
+            }
+
+            val timeModeHeight =
+                animateDpAsState(targetValue = if (state.timeMode == TimeMode.LINKED) 120.dp else 0.dp)
+
+            AnimatedVisibility(
+                visible = state.timeMode == TimeMode.LINKED,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut()
+            ) {
+                val alarms by viewModel.alarms.collectAsState(emptyList())
+                if (alarms.isEmpty()) {
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(40.dp)
+                            .padding(start = 16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        DayOfWeek.entries.forEach { day ->
-                            val isSelected = state.repeatDays.contains(day)
-                            DayButton(
-                                day = day,
-                                isSelected = isSelected,
-                                onClick = { viewModel.onDayToggle(day) }
-                            )
-                        }
+                        Text("No alarms")
                     }
-                }
-
-                // TASK
-                item {
-                    Text("Task", fontWeight = FontWeight.Bold, color = Color.White)
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                } else {
+                    LazyRow(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(120.dp),
                     ) {
-                        IconButton(onClick = { viewModel.onPhotoTask() }) {
-                            Icon(
-                                imageVector = Icons.Default.AccountBox,
-                                contentDescription = "Photo task",
-                                tint = Color.White
-                            )
-                        }
-
-                        IconButton(onClick = { viewModel.onMathTask() }) {
-                            Icon(
-                                imageVector = Icons.Default.AddCircle,
-                                contentDescription = "Math task",
-                                tint = Color.White
-                            )
+                        items(alarms.size) { index ->
+                            Box(modifier = Modifier.padding(start = 8.dp, end = 8.dp, top = 8.dp)) {
+                                AlarmItem(
+                                    onClick = { viewModel.onAlarmClick(alarms[index]) },
+                                    isClicked = state.alarm == alarms[index],
+                                    label = alarms[index].label,
+                                    time = "%02d:%02d".format(
+                                        alarms[index].getHour(),
+                                        alarms[index].getMinute()
+                                    )
+                                )
+                            }
                         }
                     }
                 }
+            }
 
-                // DISABLE BEFORE
-                item {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        androidx.compose.material3.Checkbox(
-                            checked = state.enabledDisableMode,
-                            onCheckedChange = { viewModel.onEnabledDisableModeChanged(it) }
-                        )
-                        Text("Disable before", color = Color.White)
-                    }
 
-                    if (state.enabledDisableMode) {
-                        Spacer(Modifier.height(8.dp))
+            // TIME INPUT
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedTextField(
+                    value = state.hour,
+                    onValueChange = {
+                        val filtered = it.filter { ch -> ch.isDigit() }.take(2)
+                        viewModel.onHourChanged(filtered)
+                    },
+                    label = { Text("HH") },
+                    singleLine = true,
+                    modifier = Modifier.width(80.dp),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    textStyle = MaterialTheme.typography.bodyMedium
+                )
 
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            OutlinedTextField(
-                                value = state.disableHour,
-                                onValueChange = {
-                                    val filtered = it.filter { ch -> ch.isDigit() }.take(2)
-                                    viewModel.onDisableHourChanged(filtered)
-                                },
-                                label = { Text("HH", color = Color.White) },
-                                singleLine = true,
-                                modifier = Modifier.width(80.dp),
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                textStyle = MaterialTheme.typography.bodyMedium.copy(color = Color.White)
-                            )
+                Text(":")
 
-                            Text(":", color = Color.White)
+                OutlinedTextField(
+                    value = state.minute,
+                    onValueChange = {
+                        val filtered = it.filter { ch -> ch.isDigit() }.take(2)
+                        viewModel.onMinuteChanged(filtered)
+                    },
+                    label = { Text("MM") },
+                    singleLine = true,
+                    modifier = Modifier.width(80.dp),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    textStyle = MaterialTheme.typography.bodyMedium
+                )
 
-                            OutlinedTextField(
-                                value = state.disableMinute,
-                                onValueChange = {
-                                    val filtered = it.filter { ch -> ch.isDigit() }.take(2)
-                                    viewModel.onDisableMinuteChanged(filtered)
-                                },
-                                label = { Text("MM", color = Color.White) },
-                                singleLine = true,
-                                modifier = Modifier.width(80.dp),
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                textStyle = MaterialTheme.typography.bodyMedium.copy(color = Color.White)
-                            )
-                        }
-                    }
-                }
-
-                // AUDIO
-                item {
-                    Text("Audio", fontWeight = FontWeight.Bold, color = Color.White)
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Button(
-                            onClick = { audioPickerLauncher.launch("audio/*") }
-                        ) {
-                            Text("Choose Audio")
-                        }
-
-                        Text(
-                            text = audioTitle,
-                            modifier = Modifier.padding(start = 12.dp),
-                            color = Color.White
-                        )
-                    }
-                }
-
-                // VOLUME
-                item {
-                    VolumeSlider(
-                        value = state.volume,
-                        onValueChange = { viewModel.onVolumeChanged(it) }
+                if (state.timeMode == TimeMode.LINKED) {
+                    Spacer(Modifier.width(8.dp))
+                    LinkedOffsetToggle(
+                        isAfter = state.isAlarmRingAfter,
+                        onToggle = { viewModel.onLinkedOffsetModeToggle() }
                     )
                 }
             }
-        }
 
-        // ===== НИЖНІ КНОПКИ =====
 
-        Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(20.dp))
 
-        Row(
-            modifier = Modifier
-                .fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Button(
-                modifier = Modifier.weight(1f),
-                onClick = {
-                    viewModel.onCancelAlarmCreatorClick()
-                }
+            Box(
+                modifier = Modifier
+                    .weight(1f)
             ) {
-                Text("Cancel")
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.spacedBy(20.dp)
+                ) {
+
+                    // REPEAT DAYS
+                    item {
+                        Text("Repeat Days", fontWeight = FontWeight.Bold)
+                        Spacer(Modifier.height(8.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            DayOfWeek.entries.forEach { day ->
+                                val isSelected = state.repeatDays.contains(day)
+                                DayButton(
+                                    day = day,
+                                    isSelected = isSelected,
+                                    onClick = { viewModel.onDayToggle(day) }
+                                )
+                            }
+                        }
+                    }
+
+                    // TASK
+                    item {
+                        Text("Task", fontWeight = FontWeight.Bold)
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            IconButton(onClick = { viewModel.onPhotoTask() }) {
+                                Icon(
+                                    imageVector = Icons.Default.AccountBox,
+                                    contentDescription = "Photo task",
+                                )
+                            }
+
+                            IconButton(onClick = { viewModel.onMathTask() }) {
+                                Icon(
+                                    imageVector = Icons.Default.AddCircle,
+                                    contentDescription = "Math task",
+                                )
+                            }
+                        }
+                    }
+
+                    // DISABLE BEFORE
+                    item {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Checkbox(
+                                checked = state.enabledDisableMode,
+                                onCheckedChange = { viewModel.onEnabledDisableModeChanged(it) }
+                            )
+                            Text("Disable before")
+                        }
+
+                        if (state.enabledDisableMode) {
+                            Spacer(Modifier.height(8.dp))
+
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                OutlinedTextField(
+                                    value = state.disableHour,
+                                    onValueChange = {
+                                        val filtered = it.filter { ch -> ch.isDigit() }.take(2)
+                                        viewModel.onDisableHourChanged(filtered)
+                                    },
+                                    label = { Text("HH") },
+                                    singleLine = true,
+                                    modifier = Modifier.width(80.dp),
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                    textStyle = MaterialTheme.typography.bodyMedium
+                                )
+
+                                Text(":")
+
+                                OutlinedTextField(
+                                    value = state.disableMinute,
+                                    onValueChange = {
+                                        val filtered = it.filter { ch -> ch.isDigit() }.take(2)
+                                        viewModel.onDisableMinuteChanged(filtered)
+                                    },
+                                    label = { Text("MM") },
+                                    singleLine = true,
+                                    modifier = Modifier.width(80.dp),
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                    textStyle = MaterialTheme.typography.bodyMedium
+                                )
+                            }
+                        }
+                    }
+
+                    // AUDIO
+                    item {
+                        Text("Audio", fontWeight = FontWeight.Bold)
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Button(
+                                onClick = { audioPickerLauncher.launch("audio/*") }
+                            ) {
+                                Text("Choose Audio")
+                            }
+
+                            Text(
+                                text = audioTitle,
+                                modifier = Modifier.padding(start = 12.dp),
+                            )
+                        }
+                    }
+
+                    // VOLUME
+                    item {
+                        VolumeSlider(
+                            value = state.volume,
+                            onValueChange = { viewModel.onVolumeChanged(it) }
+                        )
+                    }
+                }
             }
 
-            Button(
-                modifier = Modifier.weight(1f),
-                onClick = { viewModel.onSaveAlarm() }
+            Spacer(Modifier.height(12.dp))
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Create Alarm")
+                Button(
+                    modifier = Modifier.weight(1f),
+                    onClick = {
+                        viewModel.onCancelAlarmCreatorClick()
+                    }
+                ) {
+                    Text("Cancel")
+                }
+
+                Button(
+                    modifier = Modifier.weight(1f),
+                    onClick = { viewModel.onSaveAlarm() }
+                ) {
+                    Text("Create Alarm")
+                }
             }
         }
     }
 }
 
 @Composable
+fun AlarmItem(onClick: () -> Unit, isClicked: Boolean, label: String, time: String) {
+    val cardBorderWidth by animateDpAsState(
+        targetValue = if (isClicked) 3.dp else 0.dp,
+        label = "alarmItemRadius"
+    )
+
+    Box(
+        modifier = Modifier
+            .clickable(onClick = onClick)
+            .height(100.dp)
+            .width(160.dp)
+            .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(8.dp))
+            .border(
+                width = cardBorderWidth,
+                color = MaterialTheme.colorScheme.primary,
+                shape = RoundedCornerShape(8.dp)
+            ).padding(8.dp)
+    ) {
+        Text(label, Modifier.align(Alignment.TopStart))
+        Text(time, Modifier.align(Alignment.Center))
+
+    }
+}
+@Composable
+private fun TimeModeToggle(
+    selected: TimeMode,
+    onToggle: () -> Unit
+) {
+    val selectedIndex = if (selected == TimeMode.STANDARD) 0 else 1
+
+    PillToggle(
+        options = listOf("Standard", "Linked"),
+        selectedIndex = selectedIndex,
+        onOptionSelected = { _ ->
+            // we do not care which exactly was tapped, just flip mode
+            onToggle()
+        }
+    )
+}
+
+@Composable
+private fun LinkedOffsetToggle(
+    isAfter: Boolean,
+    onToggle: () -> Unit
+) {
+    val selectedIndex = if (isAfter) 1 else 0
+
+    PillToggle(
+        options = listOf("Before", "After"),
+        selectedIndex = selectedIndex,
+        onOptionSelected = { _ ->
+            // toggle between before / after
+            onToggle()
+        },
+        modifier = Modifier.width(140.dp)
+    )
+}
+
+
+@Composable
 private fun VolumeSlider(value: Float, onValueChange: (Float) -> Unit) {
     Column {
-        Text("Volume", color = Color.White)
+        Text("Volume")
         Slider(
             value = value,
             onValueChange = { onValueChange(it) },
@@ -386,21 +504,23 @@ private fun VolumeSlider(value: Float, onValueChange: (Float) -> Unit) {
     }
 }
 
+
 @Composable
-private fun TimeModeToggle(
-    selected: TimeMode,
-    onToggle: () -> Unit
+private fun PillToggle(
+    options: List<String>,
+    selectedIndex: Int,
+    onOptionSelected: (Int) -> Unit,
+    modifier: Modifier = Modifier
 ) {
     BoxWithConstraints(
-        modifier = Modifier
+        modifier = modifier
             .clip(RoundedCornerShape(999.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant)
-            .clickable { onToggle() }
-            .padding(4.dp)
             .height(32.dp)
+            .padding(4.dp)
     ) {
-        val segmentWidth = maxWidth / 2
-        val targetOffset = if (selected == TimeMode.STANDARD) 0.dp else segmentWidth
+        val segmentWidth = maxWidth / options.size
+        val targetOffset = segmentWidth * selectedIndex
 
         val offsetX by animateDpAsState(
             targetValue = targetOffset,
@@ -408,9 +528,10 @@ private fun TimeModeToggle(
                 durationMillis = 200,
                 easing = FastOutSlowInEasing
             ),
-            label = "timeModePillOffset"
+            label = "pillToggleOffset"
         )
 
+        // moving pill
         Box(
             modifier = Modifier
                 .offset(x = offsetX)
@@ -424,20 +545,17 @@ private fun TimeModeToggle(
             modifier = Modifier.fillMaxSize(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = "Standard",
-                modifier = Modifier.weight(1f),
-                textAlign = TextAlign.Center,
-                color = if (selected == TimeMode.STANDARD) Color.DarkGray else Color.LightGray,
-                fontSize = 13.sp
-            )
-            Text(
-                text = "Linked",
-                modifier = Modifier.weight(1f),
-                textAlign = TextAlign.Center,
-                color = if (selected == TimeMode.LINKED) Color.DarkGray else Color.LightGray,
-                fontSize = 13.sp
-            )
+            options.forEachIndexed { index, label ->
+                Text(
+                    text = label,
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable { onOptionSelected(index) },
+                    textAlign = TextAlign.Center,
+                    color = if (index == selectedIndex) Color.DarkGray else Color.LightGray,
+                    fontSize = 13.sp
+                )
+            }
         }
     }
 }
@@ -459,7 +577,7 @@ private fun DayButton(
         DayOfWeek.SUN -> "S"
     }
 
-    val color = if (isSelected) {
+    val containerColor = if (isSelected) {
         MaterialTheme.colorScheme.primary
     } else {
         MaterialTheme.colorScheme.surfaceVariant
@@ -467,12 +585,12 @@ private fun DayButton(
 
     Surface(
         modifier = Modifier.size(40.dp),
-        color = color,
+        color = containerColor,
         shape = MaterialTheme.shapes.small,
         onClick = onClick
     ) {
         Box(contentAlignment = Alignment.Center) {
-            Text(letter, color = Color.White)
+            Text(letter)
         }
     }
 }

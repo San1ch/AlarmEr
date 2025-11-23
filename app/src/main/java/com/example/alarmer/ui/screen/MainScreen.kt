@@ -24,6 +24,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -43,6 +45,11 @@ import com.example.alarmer.core.domain.data.alarm.AlarmTaskType
 import com.example.alarmer.core.domain.data.alarm.DayOfWeek
 import com.example.alarmer.core.ui.ViewModel.MainScreenViewModel
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.lifecycle.viewmodel.compose.viewModel
 
 @Composable
 fun MainScreen(viewModel: MainScreenViewModel = hiltViewModel()) {
@@ -52,19 +59,26 @@ fun MainScreen(viewModel: MainScreenViewModel = hiltViewModel()) {
 @Composable
 fun MainScreenContent(viewModel: MainScreenViewModel) {
     val alarms by viewModel.alarms.collectAsState(emptyList())
+
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background) // темний фон
             .padding(
                 WindowInsets.systemBars
                     .only(WindowInsetsSides.Top + WindowInsetsSides.Bottom)
                     .asPaddingValues()
-            )
+            ), horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        Text(
+            text = "Alarms",
+            style = MaterialTheme.typography.headlineMedium,
+            color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.padding(vertical = 12.dp)
+        )
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(19.dp)
+                .padding(horizontal = 16.dp)
         ) {
             Box(
                 modifier = Modifier
@@ -74,21 +88,25 @@ fun MainScreenContent(viewModel: MainScreenViewModel) {
             ) {
                 Text(text = "")
             }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-
             LazyColumn(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
             ) {
                 items(alarms.count()) { index ->
+                    val alarm = alarms[index]
+
+                    val orderIndex by produceState(initialValue = "") {
+                        value = viewModel.getOrderIndexByParentId(alarm.linkedToId)
+                    }
+
                     AlarmItem(
-                        alarm = alarms[index],
-                        onEnabledChange = { viewModel.onAlarmEnabledChange(alarms[index].id, it) },
-                        onMenuClick = { viewModel.onAlarmEditClick(alarms[index].id) },
-                        modifier = Modifier.padding(vertical = 6.dp)
+                        alarm = alarm,
+                        onEnabledChange = { viewModel.onAlarmEnabledChange(alarm.id, it) },
+                        onEditClick = { viewModel.onAlarmEditClick(alarm.id) },
+                        onDeleteClick = { viewModel.onAlarmDeleteClick(alarm.id) }, // зроби такий метод у VM
+                        modifier = Modifier.padding(vertical = 6.dp),
+                        orderIndex = orderIndex
                     )
                 }
             }
@@ -112,14 +130,19 @@ fun MainScreenContent(viewModel: MainScreenViewModel) {
 private fun AlarmItem(
     alarm: AlarmEntity,
     onEnabledChange: (Boolean) -> Unit,
-    onMenuClick: () -> Unit,
-    modifier: Modifier = Modifier
+    onEditClick: () -> Unit,
+    onDeleteClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    orderIndex: String,
 ) {
     val cardColor =
         if (alarm.isEnabled) MaterialTheme.colorScheme.surface
         else MaterialTheme.colorScheme.surfaceVariant
 
     val textColor = MaterialTheme.colorScheme.onSurface
+
+    // local menu state
+    var menuExpanded by remember { mutableStateOf(false) }
 
     Surface(
         modifier = modifier.fillMaxWidth(),
@@ -132,18 +155,17 @@ private fun AlarmItem(
                 .fillMaxWidth()
                 .padding(horizontal = 14.dp, vertical = 10.dp)
         ) {
-            // Верхній рядок: іконка + label + час + switch + меню
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector = Icons.Default.Favorite,
-                    contentDescription = "Alarm icon",
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier
-                        .size(28.dp)
-                        .padding(end = 8.dp)
+                Text(
+                    text = "#" + (alarm.orderIndex + 1).toString(),
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontWeight = FontWeight.SemiBold,
+                        color = textColor
+                    ),
+                    modifier = Modifier.padding(end = 8.dp)
                 )
 
                 Column(
@@ -158,7 +180,7 @@ private fun AlarmItem(
                     )
 
                     Text(
-                        text = formatTime(alarm.hour, alarm.minute),
+                        text = formatTime(alarm.getHour(), alarm.getMinute()),
                         style = MaterialTheme.typography.headlineSmall.copy(
                             fontWeight = FontWeight.Bold,
                             color = textColor
@@ -166,6 +188,7 @@ private fun AlarmItem(
                     )
                 }
 
+                // правий стовпчик: switch + три крапки
                 Column(
                     horizontalAlignment = Alignment.End
                 ) {
@@ -174,12 +197,34 @@ private fun AlarmItem(
                         onCheckedChange = onEnabledChange
                     )
 
-                    IconButton(onClick = onMenuClick) {
-                        Icon(
-                            imageVector = Icons.Default.MoreVert,
-                            contentDescription = "More actions",
-                            tint = textColor
-                        )
+                    Box { // anchor for dropdown
+                        IconButton(onClick = { menuExpanded = true }) {
+                            Icon(
+                                imageVector = Icons.Default.MoreVert,
+                                contentDescription = "More actions",
+                                tint = textColor
+                            )
+                        }
+
+                        DropdownMenu(
+                            expanded = menuExpanded,
+                            onDismissRequest = { menuExpanded = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Edit") },
+                                onClick = {
+                                    menuExpanded = false
+                                    onEditClick()
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Delete") },
+                                onClick = {
+                                    menuExpanded = false
+                                    onDeleteClick()
+                                }
+                            )
+                        }
                     }
                 }
             }
@@ -196,9 +241,13 @@ private fun AlarmItem(
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
                     text = disableText,
-                    style = MaterialTheme.typography.bodySmall.copy(color = textColor.copy(alpha = 0.85f))
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        color = textColor.copy(alpha = 0.85f)
+                    )
                 )
             }
+
+            Spacer(modifier = Modifier.height(4.dp))
 
             val taskText = when (alarm.task?.type) {
                 null -> null
@@ -206,19 +255,40 @@ private fun AlarmItem(
                 AlarmTaskType.MATH -> "Task: Math"
             }
 
-            if (taskText != null) {
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = taskText,
-                    style = MaterialTheme.typography.bodySmall.copy(
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.primary
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (taskText != null) {
+                    Text(
+                        text = taskText,
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.primary
+                        )
                     )
-                )
+                }
+                if (alarm.linkedToId != null) {
+                    Text("Linked to: #$orderIndex")
+                }
             }
         }
     }
 }
+
+
+/*  TODO creating logic
+        2. Need fix photo preview
+
+    TODO main logic
+        2. Need make drag and drop system for alarms
+        3. Add logic for switch
+        4. Make logic for dots settings button
+
+
+
+ */
 
 @Composable
 private fun DaysRow(
@@ -230,9 +300,11 @@ private fun DaysRow(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        DayOfWeek.entries.forEach { day ->
-            val isActive = repeatDays.contains(day)
-            DayChip(day = day, isActive = isActive)
+        if (repeatDays != emptyList<DayOfWeek>()) {
+            DayOfWeek.entries.forEach { day ->
+                val isActive = repeatDays.contains(day)
+                DayChip(day = day, isActive = isActive)
+            }
         }
     }
 }

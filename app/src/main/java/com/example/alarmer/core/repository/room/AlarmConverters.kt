@@ -13,12 +13,21 @@ class AlarmConverters {
     private val gson = Gson()
 
     @TypeConverter
-    fun fromDayList(value: List<DayOfWeek>?): String? =
-        value?.joinToString(",")
+    fun fromDayList(value: List<DayOfWeek>): String {
+        return if (value.isEmpty()) "" else value.joinToString(",") { it.name }
+    }
 
     @TypeConverter
-    fun toDayList(value: String?): List<DayOfWeek>? =
-        value?.split(",")?.map { DayOfWeek.valueOf(it) }
+    fun toDayList(value: String?): List<DayOfWeek> {
+        if (value.isNullOrBlank()) return emptyList()
+        return value.split(",").mapNotNull {
+            try {
+                DayOfWeek.valueOf(it)
+            } catch (_: IllegalArgumentException) {
+                null
+            }
+        }
+    }
 
     @TypeConverter
     fun fromTask(value: AlarmTask?): String? =

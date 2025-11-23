@@ -9,7 +9,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.example.alarmer.core.ui.ViewModel.PhotoTaskState
 
 @Composable
@@ -46,7 +50,7 @@ fun PhotoTaskDialog(
                                     width = 2.dp,
                                     color = MaterialTheme.colorScheme.primary
                                 )
-                                .clickable { onAddPhotoClick() },   // БУЛО: { onAddPhotoClick }
+                                .clickable { onAddPhotoClick() },
                             contentAlignment = Alignment.Center
                         ) {
                             Text("+")
@@ -66,7 +70,15 @@ fun PhotoTaskDialog(
                                 .clickable { onPhotoClick(uri) },
                             contentAlignment = Alignment.Center
                         ) {
-                            Text("IMG")
+                            AsyncImage(
+                                model = ImageRequest.Builder(LocalContext.current)
+                                    .data(uri)
+                                    .crossfade(true)
+                                    .build(),
+                                contentDescription = null,
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
                         }
                     }
                 }

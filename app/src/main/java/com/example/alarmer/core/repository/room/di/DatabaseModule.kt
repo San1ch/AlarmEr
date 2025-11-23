@@ -20,10 +20,10 @@ object DatabaseModule {
         @ApplicationContext context: Context
     ): AppDatabase {
         return Room.databaseBuilder(
-            context,
-            AppDatabase::class.java,
-            "alarmer.db"
-        ).build()
+                context,
+                AppDatabase::class.java,
+                "alarmer.db"
+            ).fallbackToDestructiveMigration(false).build()
     }
 
     @Provides

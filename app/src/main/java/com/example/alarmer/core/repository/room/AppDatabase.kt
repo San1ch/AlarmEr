@@ -7,10 +7,9 @@ import com.example.alarmer.core.domain.data.alarm.AlarmEntity
 
 @Database(
     entities = [AlarmEntity::class],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
-
 @TypeConverters(AlarmConverters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun alarmDao(): AlarmDao
